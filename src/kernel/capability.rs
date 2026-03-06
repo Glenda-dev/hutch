@@ -5,7 +5,10 @@ pub enum CapType {
     TCB,
     Endpoint,
     Reply,
-    Frame,
+    Frame {
+        addr: usize,
+        size: usize,
+    },
     PageTable,
     CNode,
     IrqHandler,
@@ -23,5 +26,10 @@ pub struct Capability {
 impl Capability {
     pub fn new(cap_type: CapType) -> Self {
         Self { cap_type, badge: None }
+    }
+
+    pub fn with_badge(mut self, badge: usize) -> Self {
+        self.badge = Some(badge);
+        self
     }
 }

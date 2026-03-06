@@ -1,0 +1,25 @@
+[package]
+name = "hutch-test-suite"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+libglenda-rs = { path = "../../../../lib/libglenda-rs", features = [
+    "rt-hosted",
+] }
+
+[[bin]]
+name = "test_resource"
+path = "src/resource.rs"
+
+[[bin]]
+name = "test_ipc"
+path = "src/ipc.rs"
+
+[[bin]]
+name = "test_fs"
+path = "src/fs.rs"
+
+[[bin]]
+name = "test_process"
+path = "src/process.rs"

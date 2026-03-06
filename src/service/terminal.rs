@@ -1,15 +1,14 @@
 use std::fs::File;
-use std::io::{self};
-use std::os::unix::fs::FileExt;
+use std::io::{self, Read, Write};
+use std::os::unix::io::FromRawFd;
 
-pub struct Terminal {
+pub struct TerminalManager {
     stdin: File,
     stdout: File,
 }
 
-impl Terminal {
+impl TerminalManager {
     pub fn new() -> Self {
-        use std::os::unix::io::FromRawFd;
         unsafe {
             Self {
                 stdin: File::from_raw_fd(0),
@@ -19,10 +18,17 @@ impl Terminal {
     }
 
     pub fn write(&self, buf: &[u8]) -> io::Result<usize> {
-        self.stdout.write_at(buf, 0)
+        let mut out = &self.stdout;
+        out.write(buf)
     }
 
     pub fn read(&self, buf: &mut [u8]) -> io::Result<usize> {
-        self.stdin.read_at(buf, 0)
+        let mut input = &self.stdin;
+        input.read(buf)
+    }
+
+    pub fn flush(&self) -> io::Result<()> {
+        let mut out = &self.stdout;
+        out.flush()
     }
 }
