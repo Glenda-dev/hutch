@@ -46,11 +46,11 @@ impl Sandbox {
         opts.open(path)
     }
 
-    pub fn read_at(&self, fd: &File, offset: u64, buf: &mut [u8]) -> io::Result<usize> {
+    pub fn read_at(&self, fd: &File, offset: usize, buf: &mut [u8]) -> io::Result<usize> {
         fd.read_at(buf, offset)
     }
 
-    pub fn write_at(&self, fd: &File, offset: u64, buf: &[u8]) -> io::Result<usize> {
+    pub fn write_at(&self, fd: &File, offset: usize, buf: &[u8]) -> io::Result<usize> {
         fd.write_at(buf, offset)
     }
 }

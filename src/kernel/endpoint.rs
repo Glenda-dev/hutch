@@ -48,7 +48,7 @@ impl KernelState {
             crate::kernel::capability::CapType::Endpoint => {
                 self.resource.lock().unwrap().get_endpoint(cptr)
             }
-            _ => return (u64::MAX as usize, vec![]),
+            _ => return (usize::MAX as usize, vec![]),
         };
 
         let badge = ep_cap.badge.unwrap_or(0); // badge is Option<usize>
@@ -185,7 +185,7 @@ impl KernelState {
                 // Here we just return 0 for now or implement a dedicated reply wait.
                 (0, vec![])
             }
-            _ => (u64::MAX as usize, vec![]),
+            _ => (usize::MAX as usize, vec![]),
         }
     }
 }

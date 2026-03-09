@@ -78,12 +78,12 @@ impl KernelState {
                         "[hutch] Unimplemented cap type invocation: {:?} (cptr: {})",
                         cap.cap_type, cptr
                     );
-                    (u64::MAX as usize, vec![])
+                    (usize::MAX as usize, vec![])
                 }
             }
         } else {
             eprintln!("[hutch] Invalid cap pointer: {}", cptr);
-            (u64::MAX as usize, vec![])
+            (usize::MAX as usize, vec![])
         };
 
         for (i, &val) in out_mrs.iter().enumerate() {
@@ -136,7 +136,7 @@ impl KernelState {
                 (0, vec![])
             }
             cnodemethod::DELETE | cnodemethod::REVOKE => (0, vec![]),
-            _ => (u64::MAX as usize, vec![]),
+            _ => (usize::MAX as usize, vec![]),
         }
     }
 
@@ -264,7 +264,7 @@ impl KernelState {
                                 };
 
                                 if fd < 0 {
-                                    return (u64::MAX as usize, vec![]);
+                                    return (usize::MAX as usize, vec![]);
                                 }
 
                                 unsafe { libc::ftruncate(fd, size as libc::off_t) };
@@ -282,7 +282,7 @@ impl KernelState {
 
                                 if ptr == libc::MAP_FAILED {
                                     unsafe { libc::close(fd) };
-                                    return (u64::MAX as usize, vec![]);
+                                    return (usize::MAX as usize, vec![]);
                                 }
 
                                 // In hutch simulation, we store the host path and id for potential multi-process sharing
@@ -318,7 +318,7 @@ impl KernelState {
 
                                 match self.processes.spawn(path_str, vec![]) {
                                     Ok(pid) => (pid, vec![]),
-                                    Err(_) => (u64::MAX as usize, vec![]),
+                                    Err(_) => (usize::MAX as usize, vec![]),
                                 }
                             }
                             _ => (0, vec![]),
@@ -347,7 +347,7 @@ impl KernelState {
                                     }
                                     Err(e) => {
                                         eprintln!("[hutch] FS Open failed for {}: {}", path_str, e);
-                                        (u64::MAX as usize, vec![])
+                                        (usize::MAX as usize, vec![])
                                     }
                                 }
                             }
@@ -364,10 +364,10 @@ impl KernelState {
                                         res.register_uring(frame_cptr, emulator);
                                         (0, vec![])
                                     } else {
-                                        (u64::MAX as usize, vec![])
+                                        (usize::MAX as usize, vec![])
                                     }
                                 } else {
-                                    (u64::MAX as usize, vec![])
+                                    (usize::MAX as usize, vec![])
                                 }
                             }
                             glenda::protocol::fs::PROCESS_IOURING => {
@@ -376,7 +376,7 @@ impl KernelState {
                                 let mut res = self.resource.lock().unwrap();
                                 match res.process_uring(frame_cptr) {
                                     Ok(_) => (0, vec![]),
-                                    Err(_) => (u64::MAX as usize, vec![]),
+                                    Err(_) => (usize::MAX as usize, vec![]),
                                 }
                             }
                             glenda::protocol::fs::READ_SYNC => {
@@ -392,7 +392,7 @@ impl KernelState {
                     }
                 }
             }
-            _ => (u64::MAX as usize, vec![]),
+            _ => (usize::MAX as usize, vec![]),
         }
     }
 }

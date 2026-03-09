@@ -20,7 +20,7 @@ impl KernelState {
                 println!("[hutch] Process exited with code: {}", code);
                 std::process::exit(code as i32);
             }
-            _ => (u64::MAX as usize, vec![]),
+            _ => (usize::MAX as usize, vec![]),
         }
     }
 }

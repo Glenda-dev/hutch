@@ -86,7 +86,7 @@ impl UringEmulator {
         }
     }
 
-    fn push_cqe(&self, user_data: u64, res: i32) {
+    fn push_cqe(&self, user_data: usize, res: i32) {
         let layout = unsafe { &*(self.base_ptr as *const IoUringLayout) };
         let cq_head = layout.cq_head.load(Ordering::Acquire);
         let cq_tail = layout.cq_tail.load(Ordering::Acquire);

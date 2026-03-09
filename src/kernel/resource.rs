@@ -14,7 +14,7 @@ impl KernelState {
                 (0, vec![])
             }
             cnodemethod::DELETE | cnodemethod::REVOKE => (0, vec![]),
-            _ => (u64::MAX as usize, vec![]),
+            _ => (usize::MAX as usize, vec![]),
         }
     }
 }

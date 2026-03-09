@@ -12,15 +12,15 @@ impl TimeManager {
         }
     }
 
-    pub fn get_time_ns(&self) -> u64 {
-        SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos() as u64
+    pub fn get_time_ns(&self) -> usize {
+        SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos() as usize
     }
 
-    pub fn get_uptime_ms(&self) -> u64 {
-        self.boot_time.elapsed().as_millis() as u64
+    pub fn get_uptime_ms(&self) -> usize {
+        self.boot_time.elapsed().as_millis() as usize
     }
 
-    pub fn sleep(&self, duration_ms: u64) {
+    pub fn sleep(&self, duration_ms: usize) {
         thread::sleep(Duration::from_millis(duration_ms));
     }
 }
