@@ -1,4 +1,5 @@
-use crate::config::Config;
+use std::sync::Arc;
+use crate::kernel::KernelState;
 use bincode;
 use glenda::protocol::hosted::{HostedMessage, HostedReply};
 use std::io::{Read, Write};
@@ -6,9 +7,9 @@ use std::os::unix::net::UnixStream;
 
 pub fn handle_client(
     mut stream: UnixStream,
-    config: Config,
+    kernel: Arc<KernelState>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let kernel = crate::kernel::KernelState::new(config);
+    
 
     loop {
         // 先读取 4 字节长度
@@ -28,10 +29,10 @@ pub fn handle_client(
             HostedMessage::SysInvoke { cptr, method, utcb_ptr } => {
                 let ret = kernel.invoke_cap(cptr, method, utcb_ptr);
                 let reply = HostedReply::Success { ret };
-                
+
                 let bytes = bincode::serialize(&reply)?;
                 let reply_len = bytes.len() as u32;
-                
+
                 // 写入长度和消息体
                 stream.write_all(&reply_len.to_le_bytes())?;
                 stream.write_all(&bytes)?;

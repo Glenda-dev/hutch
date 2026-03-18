@@ -6,6 +6,8 @@ pub struct Config {
     pub hutch: HutchConfig,
     pub sandbox: SandboxConfig,
     pub resources: ResourceConfig,
+    #[serde(default)]
+    pub vfio: VfioConfig,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -35,6 +37,20 @@ impl Config {
             hutch: HutchConfig { socket_path: "/tmp/glenda_hutch.sock".to_string() },
             sandbox: SandboxConfig { root_path: "/tmp/glenda_root".to_string() },
             resources: ResourceConfig { heap_start: 0x10000000, heap_size: 0x10000000 },
+            vfio: VfioConfig::default(),
         }
     }
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+pub struct VfioConfig {
+    pub devices: Vec<VfioDeviceConfig>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct VfioDeviceConfig {
+    pub name: String,
+    pub compatible: Vec<String>,
+    pub group_id: u32,
+    pub vfio_name: String,
 }

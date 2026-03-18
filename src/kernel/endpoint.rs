@@ -3,13 +3,27 @@ use glenda::cap::ipcmethod;
 
 use std::collections::VecDeque;
 use std::sync::{Arc, Condvar, Mutex};
+use std::cell::RefCell;
 
-/// 表示一个正在等待 IPC 的线程
+#[derive(Clone)]
+pub struct ReplyChannel {
+    pub signal: Arc<(Mutex<bool>, Condvar)>,
+    pub reply: Arc<Mutex<Option<(usize, Vec<usize>)>>>,
+}
+
+thread_local! {
+    pub static ACTIVE_REPLY: RefCell<Option<ReplyChannel>> = RefCell::new(None);
+}
+
+pub enum IPCKind {
+    Send(Arc<(Mutex<bool>, Condvar)>),
+    Call(ReplyChannel),
+}
+
 pub struct WaitingThread {
     pub tag: usize,
     pub mrs: Vec<usize>,
-    pub signal: Arc<(Mutex<bool>, Condvar)>,
-    pub reply: Arc<Mutex<Option<(usize, Vec<usize>)>>>,
+    pub kind: IPCKind,
 }
 
 pub struct Endpoint {
@@ -17,9 +31,9 @@ pub struct Endpoint {
 }
 
 pub struct EndpointInner {
-    pub receivers: VecDeque<WaitingThread>,
+    pub receivers: VecDeque<Arc<(Mutex<bool>, Condvar, Mutex<Option<(usize, Vec<usize>, Option<ReplyChannel>)>>)>>,
     pub senders: VecDeque<WaitingThread>,
-    pub notifications: usize, // Bitmask or counter for pending notifications
+    pub notifications: usize,
 }
 
 impl Endpoint {
@@ -42,148 +56,119 @@ impl KernelState {
         tag: usize,
         mrs: Vec<usize>,
     ) -> (usize, Vec<usize>) {
-        let ep_cap = self.cspace.get(cptr).expect("Invalid endpoint cap");
-
-        let ep = match &ep_cap.cap_type {
-            crate::kernel::capability::CapType::Endpoint => {
-                self.resource.lock().unwrap().get_endpoint(cptr)
-            }
-            _ => return (usize::MAX as usize, vec![]),
+        let ep_cap = self.cspace.read().unwrap().get(cptr).cloned().unwrap_or(crate::kernel::capability::Capability::new(crate::kernel::capability::CapType::Empty));
+        
+        let ep = if ep_cap.cap_type == crate::kernel::capability::CapType::Endpoint {
+            self.resource.lock().unwrap().get_endpoint(cptr)
+        } else {
+            return (usize::MAX as usize, vec![]);
         };
 
-        let badge = ep_cap.badge.unwrap_or(0); // badge is Option<usize>
-
+        let badge = ep_cap.badge.unwrap_or(0);
         let mut inner = ep.inner.lock().unwrap();
 
         match method {
             ipcmethod::NOTIFY => {
-                // seL4 style: tag usually contains badge or badge from cap is or-ed
                 let combined_badge = if badge != 0 { badge } else { tag };
-
                 if let Some(receiver) = inner.receivers.pop_front() {
-                    // Directly deliver to waiting receiver
-                    let mut reply = receiver.reply.lock().unwrap();
-                    // In notification, we return the badge in tag or MR0
-                    *reply = Some((combined_badge, vec![]));
-                    let (lock, cvar) = &*receiver.signal;
-                    let mut started = lock.lock().unwrap();
+                    let mut rep = receiver.2.lock().unwrap();
+                    *rep = Some((combined_badge, vec![], None));
+                    let mut started = receiver.0.lock().unwrap();
                     *started = true;
-                    cvar.notify_one();
-                    (0, vec![])
+                    receiver.1.notify_one();
                 } else {
-                    // Queue notification
                     inner.notifications |= combined_badge;
-                    (0, vec![])
                 }
+                (0, vec![])
             }
             ipcmethod::SEND => {
+                let sent_tag = if badge != 0 { tag | (badge << 32) } else { tag };
                 if let Some(receiver) = inner.receivers.pop_front() {
-                    // Direct transfer to waiting receiver
-                    let mut reply = receiver.reply.lock().unwrap();
-                    *reply = Some((tag, mrs));
-                    let (lock, cvar) = &*receiver.signal;
-                    let mut started = lock.lock().unwrap();
+                    let mut rep = receiver.2.lock().unwrap();
+                    *rep = Some((sent_tag, mrs, None));
+                    let mut started = receiver.0.lock().unwrap();
                     *started = true;
-                    cvar.notify_one();
+                    receiver.1.notify_one();
                     (0, vec![])
                 } else {
-                    // No receiver, block sender
                     let signal = Arc::new((Mutex::new(false), Condvar::new()));
-                    let reply = Arc::new(Mutex::new(None));
-                    let waiting = WaitingThread {
-                        tag,
-                        mrs: mrs.clone(),
-                        signal: signal.clone(),
-                        reply: reply.clone(),
-                    };
-                    inner.senders.push_back(waiting);
+                    inner.senders.push_back(WaitingThread {
+                        tag: sent_tag,
+                        mrs,
+                        kind: IPCKind::Send(signal.clone()),
+                    });
                     drop(inner);
-
-                    // Wait for a receiver to pick up
-                    let (lock, cvar) = &*signal;
-                    let mut started = lock.lock().unwrap();
+                    
+                    let mut started = signal.0.lock().unwrap();
                     while !*started {
-                        started = cvar.wait(started).unwrap();
+                        started = signal.1.wait(started).unwrap();
                     }
-
-                    let res = reply.lock().unwrap().take().unwrap_or((0, vec![]));
-                    res
+                    (0, vec![])
                 }
             }
             ipcmethod::RECV => {
                 if inner.notifications != 0 {
-                    // Receive pending notification
                     let badge = inner.notifications;
                     inner.notifications = 0;
                     (badge, vec![])
                 } else if let Some(sender) = inner.senders.pop_front() {
-                    // Pull from waiting sender
-                    let (lock, cvar) = &*sender.signal;
-                    let mut started = lock.lock().unwrap();
-                    *started = true;
-                    cvar.notify_one();
+                    match sender.kind {
+                        IPCKind::Send(sig) => {
+                            let mut started = sig.0.lock().unwrap();
+                            *started = true;
+                            sig.1.notify_one();
+                        }
+                        IPCKind::Call(chan) => {
+                            ACTIVE_REPLY.with(|r| *r.borrow_mut() = Some(chan));
+                        }
+                    }
                     (sender.tag, sender.mrs)
                 } else {
-                    // Block receiver
-                    let signal = Arc::new((Mutex::new(false), Condvar::new()));
-                    let reply = Arc::new(Mutex::new(None));
-                    let waiting = WaitingThread {
-                        tag: 0,
-                        mrs: vec![],
-                        signal: signal.clone(),
-                        reply: reply.clone(),
-                    };
-                    inner.receivers.push_back(waiting);
+                    let signal = Arc::new((Mutex::new(false), Condvar::new(), Mutex::new(None)));
+                    inner.receivers.push_back(signal.clone());
                     drop(inner);
 
-                    let (lock, cvar) = &*signal;
-                    let mut started = lock.lock().unwrap();
+                    let mut started = signal.0.lock().unwrap();
                     while !*started {
-                        started = cvar.wait(started).unwrap();
+                        started = signal.1.wait(started).unwrap();
                     }
-
-                    let res = reply.lock().unwrap().take().unwrap_or((0, vec![]));
-                    res
+                    
+                    let (res_tag, res_mrs, opt_chan) = signal.2.lock().unwrap().take().unwrap();
+                    if let Some(chan) = opt_chan {
+                        ACTIVE_REPLY.with(|r| *r.borrow_mut() = Some(chan));
+                    }
+                    (res_tag, res_mrs)
                 }
             }
             ipcmethod::CALL => {
-                // CALL is atomic SEND then RECV for the same thread.
-                // Simplified: delegate to SEND and handle the RECV part.
-                // In hutch's single-handler-thread-per-client model,
-                // we can just treat CALL as a blocking SEND that waits for a specific REPLY.
-
-                // 1. Send to receiver
+                let sent_tag = if badge != 0 { tag | (badge << 32) } else { tag };
+                let chan = ReplyChannel {
+                    signal: Arc::new((Mutex::new(false), Condvar::new())),
+                    reply: Arc::new(Mutex::new(None)),
+                };
+                
                 if let Some(receiver) = inner.receivers.pop_front() {
-                    let mut reply_slot = receiver.reply.lock().unwrap();
-                    *reply_slot = Some((tag, mrs));
-                    let (lock, cvar) = &*receiver.signal;
-                    let mut started = lock.lock().unwrap();
+                    let mut rep = receiver.2.lock().unwrap();
+                    *rep = Some((sent_tag, mrs, Some(chan.clone())));
+                    let mut started = receiver.0.lock().unwrap();
                     *started = true;
-                    cvar.notify_one();
+                    receiver.1.notify_one();
                 } else {
-                    // No receiver, block as sender
-                    let signal = Arc::new((Mutex::new(false), Condvar::new()));
-                    let reply = Arc::new(Mutex::new(None));
                     inner.senders.push_back(WaitingThread {
-                        tag,
-                        mrs: mrs.clone(),
-                        signal: signal.clone(),
-                        reply: reply.clone(),
+                        tag: sent_tag,
+                        mrs,
+                        kind: IPCKind::Call(chan.clone()),
                     });
-                    drop(inner);
-                    let (lock, cvar) = &*signal;
-                    let mut started = lock.lock().unwrap();
-                    while !*started {
-                        started = cvar.wait(started).unwrap();
-                    }
-                    // This sender was picked up by a RECV.
-                    // Now it might need to wait for a REPLY if it's a CALL.
                 }
-
-                // 2. Wait for reply (Simplified for hosted)
-                // In a real seL4 system, CALL sets a reply cap.
-                // Here we just return 0 for now or implement a dedicated reply wait.
-                (0, vec![])
+                drop(inner);
+                
+                let mut started = chan.signal.0.lock().unwrap();
+                while !*started {
+                    started = chan.signal.1.wait(started).unwrap();
+                }
+                
+                let res = chan.reply.lock().unwrap().take().unwrap_or((0, vec![]));
+                res
             }
             _ => (usize::MAX as usize, vec![]),
         }

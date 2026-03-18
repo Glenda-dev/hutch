@@ -1,5 +1,5 @@
+use crate::io::uring::UringEmulator;
 use crate::kernel::endpoint::Endpoint;
-use crate::service::uring::UringEmulator;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -51,5 +51,64 @@ impl ResourceManager {
 
     pub fn get_endpoint(&mut self, cptr: usize) -> Arc<Endpoint> {
         self.endpoints.entry(cptr).or_insert_with(|| Arc::new(Endpoint::new())).clone()
+    }
+}
+
+impl glenda::interface::resource::ResourceService for ResourceManager {
+    fn alloc(
+        &mut self,
+        _pid: glenda::ipc::Badge,
+        _obj_type: glenda::cap::CapType,
+        _flags: usize,
+        _recv: glenda::cap::CapPtr,
+    ) -> Result<glenda::cap::CapPtr, glenda::error::Error> {
+        Err(glenda::error::Error::NotSupported)
+    }
+
+    fn dma_alloc(
+        &mut self,
+        _pid: glenda::ipc::Badge,
+        _pages: usize,
+        _recv: glenda::cap::CapPtr,
+    ) -> Result<(usize, glenda::cap::Frame), glenda::error::Error> {
+        Err(glenda::error::Error::NotSupported)
+    }
+
+    fn free(&mut self, _pid: glenda::ipc::Badge, _cap: glenda::cap::CapPtr) -> Result<(), glenda::error::Error> {
+        Err(glenda::error::Error::NotSupported)
+    }
+
+    fn get_cap(
+        &mut self,
+        _pid: glenda::ipc::Badge,
+        _cap_type: glenda::protocol::resource::ResourceType,
+        _id: usize,
+        _recv: glenda::cap::CapPtr,
+    ) -> Result<glenda::cap::CapPtr, glenda::error::Error> {
+        if _cap_type == glenda::protocol::resource::ResourceType::Endpoint {
+            if let Some(cptr) = self.get_registered_cap(_id) {
+                return Ok(glenda::cap::CapPtr::from(cptr));
+            }
+            return Err(glenda::error::Error::NotFound);
+        }
+        Err(glenda::error::Error::NotSupported)
+    }
+
+    fn register_cap(
+        &mut self,
+        _pid: glenda::ipc::Badge,
+        _cap_type: glenda::protocol::resource::ResourceType,
+        _id: usize,
+        _cap: glenda::cap::CapPtr,
+    ) -> Result<(), glenda::error::Error> {
+        if _cap_type == glenda::protocol::resource::ResourceType::Endpoint {
+            ResourceManager::register_cap(self, _id, _cap.bits());
+            return Ok(());
+        }
+        Err(glenda::error::Error::NotSupported)
+    }
+
+    fn get_config(&mut self, _pid: glenda::ipc::Badge, _name: &str, _recv: glenda::cap::CapPtr) -> Result<(glenda::cap::Frame, usize), glenda::error::Error> {
+        Err(glenda::error::Error::NotSupported)
     }
 }

@@ -65,7 +65,7 @@ impl UringEmulator {
                 let buf = unsafe {
                     std::slice::from_raw_parts_mut(sqe.addr as *mut u8, sqe.len as usize)
                 };
-                match file.read_at(buf, sqe.off) {
+                match file.read_at(buf, sqe.off as u64) {
                     Ok(n) => n as i32,
                     Err(e) => -(e.raw_os_error().unwrap_or(libc::EIO)),
                 }
@@ -73,7 +73,7 @@ impl UringEmulator {
             IOURING_OP_WRITE => {
                 let buf =
                     unsafe { std::slice::from_raw_parts(sqe.addr as *const u8, sqe.len as usize) };
-                match file.write_at(buf, sqe.off) {
+                match file.write_at(buf, sqe.off as u64) {
                     Ok(n) => n as i32,
                     Err(e) => -(e.raw_os_error().unwrap_or(libc::EIO)),
                 }
@@ -110,3 +110,6 @@ impl UringEmulator {
         layout.cq_tail.store(cq_tail + 1, Ordering::Release);
     }
 }
+
+unsafe impl Send for UringEmulator {}
+unsafe impl Sync for UringEmulator {}

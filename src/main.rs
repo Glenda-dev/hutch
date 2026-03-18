@@ -35,18 +35,22 @@ fn main() {
     }
 }
 pub mod config;
+pub mod io;
 pub mod kernel;
 pub mod proto;
 pub mod service;
 pub mod utils;
+pub mod syscall;
 
 use crate::config::Config;
 use std::fs;
-use std::io;
+
 use std::os::unix::net::UnixListener;
 use std::thread;
 
-pub fn start_server(config_path: Option<&str>, listen_path: Option<String>) -> io::Result<()> {
+
+pub fn start_server(config_path: Option<&str>, listen_path: Option<String>) -> std::io::Result<()> {
+    crate::kernel::init::init();
     let mut config = match config_path {
         Some(p) => Config::from_file(p),
         None => Config::default(),
@@ -61,15 +65,18 @@ pub fn start_server(config_path: Option<&str>, listen_path: Option<String>) -> i
         fs::remove_file(path)?;
     }
 
+    
     let listener = UnixListener::bind(path)?;
     println!("[hutch] Listening on {}", path);
-
+    
+    let kernel_state = crate::kernel::KernelState::new(config.clone());
+    
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                let cfg = config.clone();
+                let ks = kernel_state.clone();
                 thread::spawn(move || {
-                    if let Err(e) = crate::proto::handle_client(stream, cfg) {
+                    if let Err(e) = crate::proto::handle_client(stream, ks) {
                         eprintln!("[hutch] Client error: {}", e);
                     }
                 });
