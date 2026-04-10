@@ -9,7 +9,7 @@ impl KernelState {
         _mrs: Vec<usize>,
     ) -> (usize, Vec<usize>) {
         match method {
-            cnodemethod::MINT | cnodemethod::COPY | cnodemethod::MOVE => {
+            cnodemethod::MINT | cnodemethod::COPY => {
                 // In hosted, we just track this in the local CSpace map for simulation
                 (0, vec![])
             }

@@ -111,4 +111,18 @@ impl glenda::interface::resource::ResourceService for ResourceManager {
     fn get_config(&mut self, _pid: glenda::ipc::Badge, _name: &str, _recv: glenda::cap::CapPtr) -> Result<(glenda::cap::Frame, usize), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
+
+    fn status(
+        &mut self,
+        _pid: glenda::ipc::Badge,
+    ) -> Result<glenda::protocol::resource::WarrenStatus, glenda::error::Error> {
+        let used = self.brk.saturating_sub(self.heap_start);
+        let available = self.heap_size.saturating_sub(used);
+        Ok(glenda::protocol::resource::WarrenStatus {
+            memory: glenda::protocol::resource::MemoryStatus {
+                available_bytes: available,
+                total_bytes: self.heap_size,
+            },
+        })
+    }
 }
