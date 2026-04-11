@@ -185,6 +185,10 @@ impl glenda::interface::device::DeviceService for &mut DeviceManager {
         Err(glenda::error::Error::NotSupported)
     }
 
+    fn report_state(&mut self, _badge: glenda::ipc::Badge, _status: glenda::protocol::init::ServiceState) -> Result<(), glenda::error::Error> {
+        Err(glenda::error::Error::NotSupported)
+    }
+
     fn update(&mut self, _badge: glenda::ipc::Badge, _compatible: std::vec::Vec<std::string::String>) -> Result<(), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
