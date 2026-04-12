@@ -35,6 +35,7 @@ impl FileSystemService for &Sandbox {
         path: &str,
         flags: OpenFlags,
         _mode: u32,
+        _recv_slot: glenda::cap::CapPtr,
     ) -> Result<usize, Error> {
         let real_path = self.map_path(path);
         let mut opts = OpenOptions::new();

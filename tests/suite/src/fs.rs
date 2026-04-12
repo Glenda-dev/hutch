@@ -27,6 +27,7 @@ pub fn main() {
         "VERSION",
         glenda::protocol::fs::OpenFlags::O_RDONLY,
         0,
+        glenda::cap::CapPtr::null(),
     ) {
         Ok(fd) => {
             println!("[TEST-FS] Opened VERSION file: fd={}", fd);
