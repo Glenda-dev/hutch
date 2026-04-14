@@ -114,7 +114,11 @@ impl DeviceManager {
                     let mut nodes = Vec::new();
                     for (_id, entry) in &self.db.entries {
                         let desc = &entry.desc;
-                        nodes.push(DeviceDescNode { parent: 0, desc: desc.clone() });
+                        nodes.push(DeviceDescNode {
+                            parent: 0,
+                            desc: desc.clone(),
+                            meta: DeviceNodeMeta::default(),
+                        });
                     }
                     let data = bincode::serialize(&nodes).unwrap_or_default();
                     let ptr = utcb.get_buffer_ptr();
@@ -178,6 +182,10 @@ impl glenda::interface::device::DeviceService for &mut DeviceManager {
     }
 
     fn get_irq(&mut self, _badge: glenda::ipc::Badge, _id: usize, _recv: glenda::cap::CapPtr) -> Result<glenda::cap::IrqHandler, glenda::error::Error> {
+        Err(glenda::error::Error::NotSupported)
+    }
+
+    fn report_frame(&mut self, _badge: glenda::ipc::Badge, _frame: glenda::cap::CapPtr, _byte_len: usize) -> Result<(), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
