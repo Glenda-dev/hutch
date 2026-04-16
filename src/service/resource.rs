@@ -70,7 +70,7 @@ impl glenda::interface::resource::ResourceService for ResourceManager {
         _pid: glenda::ipc::Badge,
         _pages: usize,
         _recv: glenda::cap::CapPtr,
-    ) -> Result<(usize, glenda::cap::Frame), glenda::error::Error> {
+    ) -> Result<(usize, glenda::cap::Page), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
@@ -108,7 +108,7 @@ impl glenda::interface::resource::ResourceService for ResourceManager {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn get_config(&mut self, _pid: glenda::ipc::Badge, _name: &str, _recv: glenda::cap::CapPtr) -> Result<(glenda::cap::Frame, usize), glenda::error::Error> {
+    fn get_config(&mut self, _pid: glenda::ipc::Badge, _name: &str, _recv: glenda::cap::CapPtr) -> Result<(glenda::cap::Page, usize), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 

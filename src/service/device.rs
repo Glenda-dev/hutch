@@ -177,7 +177,7 @@ impl glenda::interface::device::DeviceService for &mut DeviceManager {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn get_mmio(&mut self, _badge: glenda::ipc::Badge, _id: usize, _recv: glenda::cap::CapPtr) -> Result<(glenda::cap::Frame, usize, usize), glenda::error::Error> {
+    fn get_mmio(&mut self, _badge: glenda::ipc::Badge, _id: usize, _recv: glenda::cap::CapPtr) -> Result<(glenda::cap::Page, usize, usize), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported) // We handle this directly in handle_device_call instead
     }
 
