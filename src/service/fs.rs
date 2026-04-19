@@ -91,6 +91,17 @@ impl FileSystemService for &Sandbox {
         std::fs::rename(o, n).map_err(|_| Error::IoError)
     }
 
+    fn link(
+        &mut self,
+        _pid: glenda::ipc::Badge,
+        old_path: &str,
+        new_path: &str,
+    ) -> Result<(), Error> {
+        let old_real = self.map_path(old_path);
+        let new_real = self.map_path(new_path);
+        std::fs::hard_link(old_real, new_real).map_err(|_| Error::IoError)
+    }
+
     fn stat_path(&mut self, _pid: glenda::ipc::Badge, path: &str) -> Result<Stat, Error> {
         let rp = self.map_path(path);
         let meta = std::fs::metadata(rp).map_err(|_| Error::IoError)?;
