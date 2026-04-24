@@ -18,11 +18,7 @@ pub struct Capability {
 
 impl Capability {
     pub fn new(cap_type: CapType) -> Self {
-        Self {
-            cap_type,
-            badge: None,
-            data: Arc::new(Mutex::new(CapData::None)),
-        }
+        Self { cap_type, badge: None, data: Arc::new(Mutex::new(CapData::None)) }
     }
 
     pub fn with_badge(mut self, badge: usize) -> Self {

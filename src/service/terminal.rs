@@ -1,10 +1,9 @@
-
+use std::collections::HashMap;
+use std::ffi::CStr;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::os::unix::io::FromRawFd;
-use std::ffi::CStr;
 use std::sync::Mutex;
-use std::collections::HashMap;
 
 pub struct VirtualTerminal {
     pub id: usize,
@@ -20,10 +19,7 @@ pub struct TerminalManager {
 
 impl TerminalManager {
     pub fn new() -> Self {
-        let mgr = Self {
-            vts: Mutex::new(HashMap::new()),
-            next_vt_id: Mutex::new(1),
-        };
+        let mgr = Self { vts: Mutex::new(HashMap::new()), next_vt_id: Mutex::new(1) };
         mgr.create_vt_internal(0, "tty0").unwrap();
         mgr
     }
@@ -45,7 +41,7 @@ impl TerminalManager {
                 return Err(std::io::Error::last_os_error());
             }
             let slave_name = CStr::from_ptr(pts_name).to_string_lossy().into_owned();
-            
+
             let vt = VirtualTerminal {
                 id,
                 name: name.to_string(),
@@ -93,7 +89,12 @@ impl TerminalManager {
 }
 
 impl glenda::interface::terminal::VirtualTerminalService for &TerminalManager {
-    fn create_vt(&mut self, _badge: glenda::ipc::Badge, name: &str, _recv: glenda::cap::CapPtr) -> Result<(usize, glenda::cap::Endpoint), glenda::error::Error> {
+    fn create_vt(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        name: &str,
+        _recv: glenda::cap::CapPtr,
+    ) -> Result<(usize, glenda::cap::Endpoint), glenda::error::Error> {
         let mut next_id = self.next_vt_id.lock().unwrap();
         let id = *next_id;
         *next_id += 1;
@@ -101,12 +102,19 @@ impl glenda::interface::terminal::VirtualTerminalService for &TerminalManager {
         Ok((id, glenda::cap::Endpoint::from(glenda::cap::CapPtr::null())))
     }
 
-    fn destroy_vt(&mut self, _badge: glenda::ipc::Badge, vt_id: usize) -> Result<(), glenda::error::Error> {
+    fn destroy_vt(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        vt_id: usize,
+    ) -> Result<(), glenda::error::Error> {
         self.vts.lock().unwrap().remove(&vt_id);
         Ok(())
     }
 
-    fn list_vts(&mut self, _badge: glenda::ipc::Badge) -> Result<std::vec::Vec<glenda::protocol::terminal::VTDesc>, glenda::error::Error> {
+    fn list_vts(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+    ) -> Result<std::vec::Vec<glenda::protocol::terminal::VTDesc>, glenda::error::Error> {
         let mut descs = Vec::new();
         for (id, vt) in self.vts.lock().unwrap().iter() {
             descs.push(glenda::protocol::terminal::VTDesc {
@@ -119,23 +127,46 @@ impl glenda::interface::terminal::VirtualTerminalService for &TerminalManager {
         Ok(descs)
     }
 
-    fn list_seats(&mut self, _badge: glenda::ipc::Badge) -> Result<std::vec::Vec<glenda::protocol::terminal::SeatDesc>, glenda::error::Error> {
+    fn list_seats(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+    ) -> Result<std::vec::Vec<glenda::protocol::terminal::SeatDesc>, glenda::error::Error> {
         Ok(vec![])
     }
 
-    fn switch_vt(&mut self, _badge: glenda::ipc::Badge, _seat_id: usize, _vt_id: usize) -> Result<(), glenda::error::Error> {
+    fn switch_vt(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _seat_id: usize,
+        _vt_id: usize,
+    ) -> Result<(), glenda::error::Error> {
         Ok(())
     }
 
-    fn bind_seat(&mut self, _badge: glenda::ipc::Badge, _seat_id: usize, _vt_id: usize) -> Result<(), glenda::error::Error> {
+    fn bind_seat(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _seat_id: usize,
+        _vt_id: usize,
+    ) -> Result<(), glenda::error::Error> {
         Ok(())
     }
 
-    fn assign_device_to_seat(&mut self, _badge: glenda::ipc::Badge, _seat_id: usize, _device_name: &str) -> Result<(), glenda::error::Error> {
+    fn assign_device_to_seat(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _seat_id: usize,
+        _device_name: &str,
+    ) -> Result<(), glenda::error::Error> {
         Ok(())
     }
 
-    fn revoke_device_from_seat(&mut self, _badge: glenda::ipc::Badge, _seat_id: usize, _device_name: &str) -> Result<(), glenda::error::Error> {
+    fn revoke_device_from_seat(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _seat_id: usize,
+        _device_name: &str,
+    ) -> Result<(), glenda::error::Error> {
         Ok(())
     }
 }

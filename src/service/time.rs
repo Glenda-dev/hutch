@@ -33,7 +33,12 @@ impl glenda::interface::TimeService for &TimeManager {
         Ok(())
     }
 
-    fn adj_time(&mut self, _badge: glenda::ipc::Badge, _absolute_ns: u64, _drift_ppb: i64) -> Result<(), glenda::error::Error> {
+    fn adj_time(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _absolute_ns: u64,
+        _drift_ppb: i64,
+    ) -> Result<(), glenda::error::Error> {
         // Not supported in host OS
         Ok(())
     }

@@ -1,12 +1,18 @@
 use crate::kernel::KernelState;
-use glenda::protocol::kernel::*;
 use glenda::cap::ipcmethod;
+use glenda::protocol::kernel::*;
 
 impl KernelState {
     // Trap module for sub-routine exceptions handling
-    pub fn handle_exception(&self, fault_ep: usize, cause: usize, pc: usize, value: usize) -> (usize, Vec<usize>) {
+    pub fn handle_exception(
+        &self,
+        fault_ep: usize,
+        cause: usize,
+        pc: usize,
+        value: usize,
+    ) -> (usize, Vec<usize>) {
         println!("[hutch] Exception trapped: cause={:#x}, pc={:#x}, tval={:#x}", cause, pc, value);
-        
+
         let tag = match cause {
             12 | 13 | 15 => PAGE_FAULT, // Instruction, Load, Store page fault
             2 => ILLEGAL_INSTRUCTION,
@@ -26,11 +32,6 @@ impl KernelState {
         };
 
         // Exception processing generally does a CALL to get resumed
-        self.handle_endpoint_invocation(
-            fault_ep,
-            ipcmethod::CALL,
-            tag,
-            mrs,
-        )
+        self.handle_endpoint_invocation(fault_ep, ipcmethod::CALL, tag, mrs)
     }
 }

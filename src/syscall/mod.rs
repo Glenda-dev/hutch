@@ -1,5 +1,5 @@
-pub mod console;
 pub mod cnode;
+pub mod console;
 pub mod irq;
 pub mod tcb;
 pub mod vspace;
@@ -20,8 +20,10 @@ impl KernelState {
                 CapType::TCB => self.handle_tcb_invocation(method, tag.0, mrs),
                 CapType::CNode => self.handle_cnode_invocation(method, tag.0, mrs),
                 CapType::VSpace => self.handle_vspace_invocation(method, tag.0, mrs),
-CapType::Reply => {
-                    if let Some(chan) = crate::kernel::endpoint::ACTIVE_REPLY.with(|r| r.borrow_mut().take()) {
+                CapType::Reply => {
+                    if let Some(chan) =
+                        crate::kernel::endpoint::ACTIVE_REPLY.with(|r| r.borrow_mut().take())
+                    {
                         let mut rep = chan.reply.lock().unwrap();
                         *rep = Some((tag.0, mrs));
                         let mut started = chan.signal.0.lock().unwrap();
@@ -65,7 +67,12 @@ CapType::Reply => {
         ret
     }
 
-    fn handle_process_emulation(&self, _method: usize, _tag: usize, mrs: Vec<usize>) -> (usize, Vec<usize>) {
+    fn handle_process_emulation(
+        &self,
+        _method: usize,
+        _tag: usize,
+        mrs: Vec<usize>,
+    ) -> (usize, Vec<usize>) {
         use glenda::protocol;
         let tag = glenda::ipc::MsgTag(_tag);
         if tag.label() == protocol::process::EXIT {
@@ -76,8 +83,14 @@ CapType::Reply => {
             (usize::MAX as usize, vec![])
         }
     }
-    
-    fn handle_resource_emulation(&self, _method: usize, _tag: usize, mrs: Vec<usize>, utcb_ptr: usize) -> (usize, Vec<usize>) {
+
+    fn handle_resource_emulation(
+        &self,
+        _method: usize,
+        _tag: usize,
+        mrs: Vec<usize>,
+        utcb_ptr: usize,
+    ) -> (usize, Vec<usize>) {
         use glenda::protocol;
         let tag = glenda::ipc::MsgTag(_tag);
         let utcb = unsafe { &mut *(utcb_ptr as *mut UTCB) };

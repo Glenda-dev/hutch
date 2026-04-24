@@ -22,9 +22,7 @@ pub struct IrqManager {
 
 impl IrqManager {
     pub fn new() -> Self {
-        Self {
-            table: RwLock::new([const { IrqSlot::new() }; MAX_IRQS]),
-        }
+        Self { table: RwLock::new([const { IrqSlot::new() }; MAX_IRQS]) }
     }
 
     pub fn bind_notification(&self, irq: usize, cptr: usize, badge: usize) -> Result<(), Error> {

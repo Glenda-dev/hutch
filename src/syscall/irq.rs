@@ -25,7 +25,7 @@ impl KernelState {
                 }
                 (glenda::error::Error::InvalidCapability as usize, vec![])
             }
-                        irqmethod::ACK => {
+            irqmethod::ACK => {
                 let dev_mgr = self.device.lock().unwrap();
                 for (_, entry) in dev_mgr.db.entries.iter() {
                     if entry.desc.irq.contains(&(irq as usize)) {

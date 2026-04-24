@@ -20,13 +20,27 @@ impl DeviceDatabase {
         Self { entries: HashMap::new() }
     }
 
-        pub fn insert_with_vfio(&mut self, id: usize, desc: DeviceDesc, group: Option<crate::io::vfio::VfioGroup>, device: Option<crate::io::vfio::VfioDevice>) {
-        self.entries.insert(id, DeviceEntry { desc, allocated: false, owner_pid: None, vfio_group: group, vfio_device: device });
+    pub fn insert_with_vfio(
+        &mut self,
+        id: usize,
+        desc: DeviceDesc,
+        group: Option<crate::io::vfio::VfioGroup>,
+        device: Option<crate::io::vfio::VfioDevice>,
+    ) {
+        self.entries.insert(
+            id,
+            DeviceEntry {
+                desc,
+                allocated: false,
+                owner_pid: None,
+                vfio_group: group,
+                vfio_device: device,
+            },
+        );
     }
     pub fn get_device(&self, id: usize) -> Option<&crate::io::vfio::VfioDevice> {
         self.entries.get(&id).and_then(|e| e.vfio_device.as_ref())
     }
-    
 }
 
 pub struct DeviceManager {
@@ -36,7 +50,10 @@ pub struct DeviceManager {
 }
 
 impl DeviceManager {
-    pub fn new(config: &crate::config::VfioConfig, kernel: std::sync::Weak<crate::kernel::KernelState>) -> Self {
+    pub fn new(
+        config: &crate::config::VfioConfig,
+        kernel: std::sync::Weak<crate::kernel::KernelState>,
+    ) -> Self {
         let mut db = DeviceDatabase::new();
         let vfio_container = vfio::VfioContainer::new().ok();
         let mut next_id = 1;
@@ -59,7 +76,8 @@ impl DeviceManager {
                                     let irq_num = next_id; // Just use id as irq num for simplicity
                                     irq.push(irq_num);
 
-                                    let kernel = kernel.clone(); std::thread::spawn(move || {
+                                    let kernel = kernel.clone();
+                                    std::thread::spawn(move || {
                                         let mut buf = [0u8; 8];
                                         loop {
                                             let n = unsafe {
@@ -70,7 +88,9 @@ impl DeviceManager {
                                                 )
                                             };
                                             if n == 8 {
-                                                if let Some(k) = kernel.upgrade() { k.trigger_irq(irq_num); }
+                                                if let Some(k) = kernel.upgrade() {
+                                                    k.trigger_irq(irq_num);
+                                                }
                                             } else if n < 0 {
                                                 break;
                                             }
@@ -177,55 +197,114 @@ impl glenda::interface::device::DeviceService for &mut DeviceManager {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn get_mmio(&mut self, _badge: glenda::ipc::Badge, _id: usize, _recv: glenda::cap::CapPtr) -> Result<(glenda::cap::Page, usize, usize), glenda::error::Error> {
+    fn get_mmio(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _id: usize,
+        _recv: glenda::cap::CapPtr,
+    ) -> Result<(glenda::cap::Page, usize, usize), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported) // We handle this directly in handle_device_call instead
     }
 
-    fn get_irq(&mut self, _badge: glenda::ipc::Badge, _id: usize, _recv: glenda::cap::CapPtr) -> Result<glenda::cap::IrqHandler, glenda::error::Error> {
+    fn get_irq(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _id: usize,
+        _recv: glenda::cap::CapPtr,
+    ) -> Result<glenda::cap::IrqHandler, glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn report_frame(&mut self, _badge: glenda::ipc::Badge, _frame: glenda::cap::CapPtr, _byte_len: usize) -> Result<(), glenda::error::Error> {
+    fn report_frame(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _frame: glenda::cap::CapPtr,
+        _byte_len: usize,
+    ) -> Result<(), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn report(&mut self, _badge: glenda::ipc::Badge, _desc: std::vec::Vec<glenda::protocol::device::DeviceDescNode>) -> Result<(), glenda::error::Error> {
+    fn report(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _desc: std::vec::Vec<glenda::protocol::device::DeviceDescNode>,
+    ) -> Result<(), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn report_state(&mut self, _badge: glenda::ipc::Badge, _status: glenda::protocol::init::ServiceState) -> Result<(), glenda::error::Error> {
+    fn report_state(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _status: glenda::protocol::init::ServiceState,
+    ) -> Result<(), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn update(&mut self, _badge: glenda::ipc::Badge, _compatible: std::vec::Vec<std::string::String>) -> Result<(), glenda::error::Error> {
+    fn update(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _compatible: std::vec::Vec<std::string::String>,
+    ) -> Result<(), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn register_logic(&mut self, _badge: glenda::ipc::Badge, _desc: glenda::protocol::device::LogicDeviceDesc, _endpoint: glenda::cap::CapPtr) -> Result<(), glenda::error::Error> {
+    fn register_logic(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _desc: glenda::protocol::device::LogicDeviceDesc,
+        _endpoint: glenda::cap::CapPtr,
+    ) -> Result<(), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn alloc_logic(&mut self, _badge: glenda::ipc::Badge, _dev_type: glenda::protocol::device::LogicDeviceType, _criteria: &str, _recv: glenda::cap::CapPtr) -> Result<glenda::cap::Endpoint, glenda::error::Error> {
+    fn alloc_logic(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _dev_type: glenda::protocol::device::LogicDeviceType,
+        _criteria: &str,
+        _recv: glenda::cap::CapPtr,
+    ) -> Result<glenda::cap::Endpoint, glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn query(&mut self, _badge: glenda::ipc::Badge, _query: glenda::protocol::device::DeviceQuery) -> Result<std::vec::Vec<std::string::String>, glenda::error::Error> {
+    fn query(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _query: glenda::protocol::device::DeviceQuery,
+    ) -> Result<std::vec::Vec<std::string::String>, glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn get_desc(&mut self, _badge: glenda::ipc::Badge, _name: &str) -> Result<glenda::protocol::device::DeviceDesc, glenda::error::Error> {
+    fn get_desc(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _name: &str,
+    ) -> Result<glenda::protocol::device::DeviceDesc, glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn get_logic_desc(&mut self, _badge: glenda::ipc::Badge, _name: &str) -> Result<(usize, glenda::protocol::device::LogicDeviceDesc), glenda::error::Error> {
+    fn get_logic_desc(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _name: &str,
+    ) -> Result<(usize, glenda::protocol::device::LogicDeviceDesc), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn hook(&mut self, _badge: glenda::ipc::Badge, _target: glenda::protocol::device::HookTarget, _endpoint: glenda::cap::CapPtr) -> Result<(), glenda::error::Error> {
+    fn hook(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _target: glenda::protocol::device::HookTarget,
+        _endpoint: glenda::cap::CapPtr,
+    ) -> Result<(), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
-    fn unhook(&mut self, _badge: glenda::ipc::Badge, _target: glenda::protocol::device::HookTarget) -> Result<(), glenda::error::Error> {
+    fn unhook(
+        &mut self,
+        _badge: glenda::ipc::Badge,
+        _target: glenda::protocol::device::HookTarget,
+    ) -> Result<(), glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 }

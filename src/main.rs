@@ -39,15 +39,14 @@ pub mod io;
 pub mod kernel;
 pub mod proto;
 pub mod service;
-pub mod utils;
 pub mod syscall;
+pub mod utils;
 
 use crate::config::Config;
 use std::fs;
 
 use std::os::unix::net::UnixListener;
 use std::thread;
-
 
 pub fn start_server(config_path: Option<&str>, listen_path: Option<String>) -> std::io::Result<()> {
     crate::kernel::init::init();
@@ -65,12 +64,11 @@ pub fn start_server(config_path: Option<&str>, listen_path: Option<String>) -> s
         fs::remove_file(path)?;
     }
 
-    
     let listener = UnixListener::bind(path)?;
     println!("[hutch] Listening on {}", path);
-    
+
     let kernel_state = crate::kernel::KernelState::new(config.clone());
-    
+
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {

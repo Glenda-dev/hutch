@@ -1,16 +1,14 @@
-use std::sync::Arc;
 use crate::kernel::KernelState;
 use bincode;
 use glenda::protocol::hosted::{HostedMessage, HostedReply};
 use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
+use std::sync::Arc;
 
 pub fn handle_client(
     mut stream: UnixStream,
     kernel: Arc<KernelState>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    
-
     loop {
         // 先读取 4 字节长度
         let mut len_buf = [0u8; 4];

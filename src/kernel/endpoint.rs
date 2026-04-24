@@ -1,9 +1,9 @@
 use crate::kernel::KernelState;
 use glenda::cap::ipcmethod;
 
+use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::sync::{Arc, Condvar, Mutex};
-use std::cell::RefCell;
 
 #[derive(Clone)]
 pub struct ReplyChannel {
@@ -31,7 +31,9 @@ pub struct Endpoint {
 }
 
 pub struct EndpointInner {
-    pub receivers: VecDeque<Arc<(Mutex<bool>, Condvar, Mutex<Option<(usize, Vec<usize>, Option<ReplyChannel>)>>)>>,
+    pub receivers: VecDeque<
+        Arc<(Mutex<bool>, Condvar, Mutex<Option<(usize, Vec<usize>, Option<ReplyChannel>)>>)>,
+    >,
     pub senders: VecDeque<WaitingThread>,
     pub notifications: usize,
 }
@@ -56,8 +58,10 @@ impl KernelState {
         tag: usize,
         mrs: Vec<usize>,
     ) -> (usize, Vec<usize>) {
-        let ep_cap = self.cspace.read().unwrap().get(cptr).cloned().unwrap_or(crate::kernel::capability::Capability::new(crate::kernel::capability::CapType::Empty));
-        
+        let ep_cap = self.cspace.read().unwrap().get(cptr).cloned().unwrap_or(
+            crate::kernel::capability::Capability::new(crate::kernel::capability::CapType::Empty),
+        );
+
         let ep = if ep_cap.cap_type == crate::kernel::capability::CapType::Endpoint {
             self.resource.lock().unwrap().get_endpoint(cptr)
         } else {
@@ -98,7 +102,7 @@ impl KernelState {
                         kind: IPCKind::Send(signal.clone()),
                     });
                     drop(inner);
-                    
+
                     let mut started = signal.0.lock().unwrap();
                     while !*started {
                         started = signal.1.wait(started).unwrap();
@@ -132,7 +136,7 @@ impl KernelState {
                     while !*started {
                         started = signal.1.wait(started).unwrap();
                     }
-                    
+
                     let (res_tag, res_mrs, opt_chan) = signal.2.lock().unwrap().take().unwrap();
                     if let Some(chan) = opt_chan {
                         ACTIVE_REPLY.with(|r| *r.borrow_mut() = Some(chan));
@@ -146,7 +150,7 @@ impl KernelState {
                     signal: Arc::new((Mutex::new(false), Condvar::new())),
                     reply: Arc::new(Mutex::new(None)),
                 };
-                
+
                 if let Some(receiver) = inner.receivers.pop_front() {
                     let mut rep = receiver.2.lock().unwrap();
                     *rep = Some((sent_tag, mrs, Some(chan.clone())));
@@ -161,12 +165,12 @@ impl KernelState {
                     });
                 }
                 drop(inner);
-                
+
                 let mut started = chan.signal.0.lock().unwrap();
                 while !*started {
                     started = chan.signal.1.wait(started).unwrap();
                 }
-                
+
                 let res = chan.reply.lock().unwrap().take().unwrap_or((0, vec![]));
                 res
             }

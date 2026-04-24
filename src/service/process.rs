@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::process::{Child, Command};
 use std::os::unix::io::FromRawFd;
+use std::process::{Child, Command};
 use std::sync::Mutex;
 
 pub struct ProcessManager {
@@ -27,9 +27,17 @@ impl ProcessManager {
 }
 
 impl glenda::interface::process::ProcessService for &ProcessManager {
-    fn spawn(&mut self, _pid: glenda::ipc::Badge, path: &str) -> Result<usize, glenda::error::Error> {
+    fn spawn(
+        &mut self,
+        _pid: glenda::ipc::Badge,
+        path: &str,
+    ) -> Result<usize, glenda::error::Error> {
         let child = {
-            let slave = std::fs::OpenOptions::new().read(true).write(true).open(self.terminal.get_slave_name(0).unwrap()).unwrap();
+            let slave = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(self.terminal.get_slave_name(0).unwrap())
+                .unwrap();
             let slave_fd = std::os::unix::io::AsRawFd::as_raw_fd(&slave);
             unsafe {
                 Command::new(path)
@@ -38,8 +46,9 @@ impl glenda::interface::process::ProcessService for &ProcessManager {
                     .stderr(std::process::Stdio::from_raw_fd(slave_fd))
                     .spawn()
             }
-        }.map_err(|_| glenda::error::Error::IoError)?;
-        
+        }
+        .map_err(|_| glenda::error::Error::IoError)?;
+
         let mut next_pid = self.next_pid.lock().unwrap();
         let pid = *next_pid;
         *next_pid += 1;
@@ -48,7 +57,11 @@ impl glenda::interface::process::ProcessService for &ProcessManager {
         Ok(pid)
     }
 
-    fn create(&mut self, _pid: glenda::ipc::Badge, _name: &str) -> Result<usize, glenda::error::Error> {
+    fn create(
+        &mut self,
+        _pid: glenda::ipc::Badge,
+        _name: &str,
+    ) -> Result<usize, glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 
@@ -56,7 +69,11 @@ impl glenda::interface::process::ProcessService for &ProcessManager {
         std::process::exit(code as i32);
     }
 
-    fn kill(&mut self, _pid: glenda::ipc::Badge, target: usize) -> Result<(), glenda::error::Error> {
+    fn kill(
+        &mut self,
+        _pid: glenda::ipc::Badge,
+        target: usize,
+    ) -> Result<(), glenda::error::Error> {
         if let Some(mut child) = self.processes.lock().unwrap().remove(&target) {
             let _ = child.kill();
             Ok(())
@@ -65,7 +82,12 @@ impl glenda::interface::process::ProcessService for &ProcessManager {
         }
     }
 
-    fn get_cnode(&mut self, _pid: glenda::ipc::Badge, _target: usize, _recv: glenda::cap::CapPtr) -> Result<glenda::cap::CNode, glenda::error::Error> {
+    fn get_cnode(
+        &mut self,
+        _pid: glenda::ipc::Badge,
+        _target: usize,
+        _recv: glenda::cap::CapPtr,
+    ) -> Result<glenda::cap::CNode, glenda::error::Error> {
         Err(glenda::error::Error::NotSupported)
     }
 }

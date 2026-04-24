@@ -8,10 +8,7 @@ pub struct CSpace {
 
 impl CSpace {
     pub fn new() -> Self {
-        Self { 
-            slots: HashMap::new(),
-            cdt: HashMap::new(),
-        }
+        Self { slots: HashMap::new(), cdt: HashMap::new() }
     }
 
     pub fn insert(&mut self, cptr: usize, cap: Capability) {
@@ -25,7 +22,7 @@ impl CSpace {
 
     pub fn delete(&mut self, cptr: usize) {
         self.slots.remove(&cptr);
-        
+
         // Remove from parent's CDT tracking
         for children in self.cdt.values_mut() {
             if let Some(pos) = children.iter().position(|x| *x == cptr) {

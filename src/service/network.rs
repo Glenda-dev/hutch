@@ -1,7 +1,7 @@
-use std::net::{TcpListener, TcpStream, UdpSocket, SocketAddr};
 use std::collections::HashMap;
-use std::sync::Mutex;
 use std::io::{Read, Write};
+use std::net::{SocketAddr, TcpListener, TcpStream, UdpSocket};
+use std::sync::Mutex;
 
 pub struct NetworkManager {
     listeners: Mutex<HashMap<usize, TcpListener>>,
@@ -23,11 +23,11 @@ impl NetworkManager {
     pub fn listen(&self, addr: SocketAddr) -> Result<usize, std::io::Error> {
         let listener = TcpListener::bind(addr)?;
         listener.set_nonblocking(true)?;
-        
+
         let mut handle = self.next_handle.lock().unwrap();
         let h = *handle;
         *handle += 1;
-        
+
         self.listeners.lock().unwrap().insert(h, listener);
         Ok(h)
     }
@@ -39,7 +39,7 @@ impl NetworkManager {
         let mut handle = self.next_handle.lock().unwrap();
         let h = *handle;
         *handle += 1;
-        
+
         self.streams.lock().unwrap().insert(h, stream);
         Ok(h)
     }
